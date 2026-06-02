@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 from typing import Any, Dict
 
 from google import genai
@@ -13,6 +14,12 @@ from backend.config import get_settings
 from backend.schemas.test_case import TestCase
 
 logger = logging.getLogger(__name__)
+
+
+# Transient errors worth retrying: 429 (rate limit), 5xx, and connection
+# failures raised by the SDK. We deliberately do NOT retry on
+# ``ValueError`` or invalid-argument errors.
+_RETRYABLE_STATUS = {429, 500, 502, 503, 504}
 
 
 SYSTEM_PROMPT = (
@@ -82,25 +89,53 @@ class GeminiService:
             "Return ONLY the JSON object as specified."
         )
 
-        try:
-            response = self._client.models.generate_content(
-                model=self._model_name,
-                contents=user_prompt,
-                config={
-                    "system_instruction": SYSTEM_PROMPT,
-                    "temperature": 0.4,
-                    "top_p": 0.95,
-                    "max_output_tokens": 2048,
-                    "response_mime_type": "application/json",
-                },
-            )
-        except genai_errors.APIError as exc:
-            logger.exception("Gemini API error: %s", exc)
-            raise GeminiServiceError(f"Gemini API error: {exc}") from exc
-
+        response = self._call_with_retry(user_prompt)
         raw_text = self._extract_text(response)
         payload = self._parse_json(raw_text)
         return self._validate_payload(payload, requirement)
+
+    def _call_with_retry(self, user_prompt: str) -> Any:
+        """Call Gemini with exponential backoff for transient errors."""
+        max_attempts = 3
+        backoff = 1.0
+        last_exc: Exception | None = None
+
+        for attempt in range(1, max_attempts + 1):
+            try:
+                return self._client.models.generate_content(
+                    model=self._model_name,
+                    contents=user_prompt,
+                    config={
+                        "system_instruction": SYSTEM_PROMPT,
+                        "temperature": 0.4,
+                        "top_p": 0.95,
+                        "max_output_tokens": 2048,
+                        "response_mime_type": "application/json",
+                    },
+                )
+            except genai_errors.APIError as exc:
+                status = getattr(exc, "code", None) or 0
+                last_exc = exc
+                if status not in _RETRYABLE_STATUS or attempt == max_attempts:
+                    logger.exception(
+                        "Gemini API error on attempt %s: %s", attempt, exc
+                    )
+                    raise GeminiServiceError(
+                        f"Gemini API error: {exc}"
+                    ) from exc
+                logger.warning(
+                    "Gemini transient error (status=%s) on attempt %s; retrying in %.1fs",
+                    status,
+                    attempt,
+                    backoff,
+                )
+                time.sleep(backoff)
+                backoff *= 2
+
+        # Unreachable, but the type checker wants an explicit raise.
+        raise GeminiServiceError(
+            f"Gemini API failed after {max_attempts} attempts: {last_exc}"
+        )
 
     @staticmethod
     def _extract_text(response: Any) -> str:
