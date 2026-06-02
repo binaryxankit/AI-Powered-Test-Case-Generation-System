@@ -30,6 +30,18 @@ export default function GeneratePage() {
     trimmed.length >= MIN_LENGTH && trimmed.length <= MAX_LENGTH;
   const canSubmit = isValid && !isLoading;
 
+  const handleKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        event.preventDefault();
+        if (canSubmit) {
+          event.currentTarget.form?.requestSubmit();
+        }
+      }
+    },
+    [canSubmit],
+  );
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canSubmit) return;
@@ -104,6 +116,7 @@ export default function GeneratePage() {
             name="requirement"
             value={requirement}
             onChange={(e) => setRequirement(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder={PLACEHOLDER}
             disabled={isLoading}
             rows={6}
@@ -113,7 +126,11 @@ export default function GeneratePage() {
           />
           <p className="text-xs text-muted-foreground">
             Tip: be specific about the user action, system under test, and
-            expected outcome.
+            expected outcome. Press{" "}
+            <kbd className="rounded border border-border/60 bg-background px-1.5 py-0.5 font-mono text-[10px]">
+              Ctrl/⌘ + Enter
+            </kbd>{" "}
+            to generate.
           </p>
         </div>
 
