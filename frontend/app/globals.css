@@ -91,3 +91,36 @@
     @apply bg-card/60 backdrop-blur-xl border border-border/60;
   }
 }
+
+@media print {
+  /* Hide chrome and surface the content for clean print-outs. */
+  header,
+  footer,
+  nav,
+  [data-no-print] {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .container {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  [class*="animate-"] {
+    animation: none !important;
+  }
+
+  .grid-pattern,
+  .absolute {
+    display: none !important;
+  }
+
+  a[href]::after {
+    content: "";
+  }
+}

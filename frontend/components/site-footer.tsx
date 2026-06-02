@@ -4,7 +4,7 @@ import { Sparkles } from "lucide-react";
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border/40 bg-background/60">
+    <footer data-no-print className="border-t border-border/40 bg-background/60">
       <div className="container flex flex-col items-center justify-between gap-3 py-6 text-sm text-muted-foreground md:flex-row">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
