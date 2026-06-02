@@ -143,6 +143,8 @@ GRANT ALL PRIVILEGES ON DATABASE testcase_ai TO testcase_user;
 
 ### 2. Backend (FastAPI)
 
+From the project root:
+
 ```powershell
 cd backend
 python -m venv venv
@@ -165,11 +167,19 @@ GEMINI_MODEL=gemini-1.5-flash
 CORS_ORIGINS=http://localhost:3000
 ```
 
-Start the API:
+Start the API. **Run this from the project root** (one level above `backend/`) so Python can resolve the `backend.*` package imports:
 
 ```powershell
-uvicorn main:app --reload --port 8000
+cd ..\   # back to project root
+uvicorn backend.main:app --reload --port 8000
 ```
+
+> Alternative: set `PYTHONPATH` to the project root and run `uvicorn backend.main:app` from anywhere.
+>
+> ```powershell
+> $env:PYTHONPATH = (Resolve-Path .).Path
+> uvicorn backend.main:app --reload --port 8000
+> ```
 
 The API will be available at **http://localhost:8000** with interactive docs at `/docs`.
 
