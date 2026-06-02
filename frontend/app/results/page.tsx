@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import {
   ArrowLeft,
+  ClipboardCopy,
   Download,
   FileText,
   History,
@@ -13,6 +14,7 @@ import {
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/copy-button";
 import { Spinner } from "@/components/ui/spinner";
 import {
   TestCaseCard,
@@ -21,6 +23,7 @@ import {
 } from "@/components/test-case-card";
 import { api, ApiClientError } from "@/services/api";
 import { formatDate, truncate } from "@/lib/utils";
+import { formatAllTestCasesAsMarkdown } from "@/lib/format";
 import type { TestGeneration } from "@/lib/types";
 
 export default function ResultsPage() {
@@ -129,6 +132,11 @@ function ResultsView() {
           New generation
         </Button>
         <div className="flex flex-wrap gap-2">
+          <CopyButton
+            value={formatAllTestCasesAsMarkdown(data)}
+            label="Copy as Markdown"
+            variant="outline"
+          />
           <Button
             variant="outline"
             onClick={() => router.push(`/history/${data.id}`)}
