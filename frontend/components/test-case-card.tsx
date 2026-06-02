@@ -1,7 +1,9 @@
 import { AlertTriangle, CheckCircle2, FileText, ListOrdered, ShieldAlert } from "lucide-react";
+import * as React from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { CopyButton } from "@/components/copy-button";
 import { Separator } from "@/components/ui/separator";
 import type { Priority, TestCase } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -27,6 +29,11 @@ const PRIORITY_DOT: Record<Priority, string> = {
 };
 
 export function TestCaseCard({ index, testCase, className }: TestCaseCardProps) {
+  const copyValue = React.useMemo(
+    () => formatTestCaseAsText(testCase),
+    [testCase],
+  );
+
   return (
     <Card
       className={cn(
@@ -55,9 +62,16 @@ export function TestCaseCard({ index, testCase, className }: TestCaseCardProps) 
               {testCase.title}
             </h3>
           </div>
-          <Badge variant={PRIORITY_VARIANT[testCase.priority]}>
-            {testCase.priority}
-          </Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={PRIORITY_VARIANT[testCase.priority]}>
+              {testCase.priority}
+            </Badge>
+            <CopyButton
+              value={copyValue}
+              label="Copy"
+              aria-label="Copy test case to clipboard"
+            />
+          </div>
         </header>
 
         <Separator />
@@ -158,4 +172,21 @@ export function TestCaseSummary({ count }: { count: number }) {
       </span>
     </div>
   );
+}
+
+export function formatTestCaseAsText(testCase: TestCase): string {
+  const lines: string[] = [
+    `[${testCase.test_case_id}] ${testCase.title}`,
+    `Priority: ${testCase.priority}`,
+    "",
+    "Test Steps:",
+    ...testCase.steps.map((step, i) => `  ${i + 1}. ${step}`),
+    "",
+    `Expected Result: ${testCase.expected_result}`,
+  ];
+  if (testCase.edge_cases.length > 0) {
+    lines.push("", "Edge Cases:");
+    testCase.edge_cases.forEach((edge) => lines.push(`  - ${edge}`));
+  }
+  return lines.join("\n");
 }
