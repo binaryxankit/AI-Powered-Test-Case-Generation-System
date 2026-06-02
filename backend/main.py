@@ -9,6 +9,7 @@ from backend.config import get_settings
 from backend.database.session import init_db
 from backend.logging_config import configure_logging
 from backend.middleware.errors import register_exception_handlers
+from backend.middleware.request_id import RequestIDMiddleware
 
 configure_logging()
 
@@ -27,6 +28,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RequestIDMiddleware)
 
 register_exception_handlers(app)
 
