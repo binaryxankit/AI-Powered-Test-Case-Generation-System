@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import logging
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.models.test_generation import TestGeneration
 from backend.schemas.test_case import TestCase, TestGenerationResponse, TestGenerationSummary
+from backend.services.cache import GenerationCache
 from backend.services.gemini_service import GeminiService, GeminiServiceError
 
 logger = logging.getLogger(__name__)
@@ -17,20 +18,32 @@ logger = logging.getLogger(__name__)
 class TestCaseService:
     """High-level operations combining Gemini + the database."""
 
-    def __init__(self, db: Session, gemini: GeminiService | None = None) -> None:
+    def __init__(
+        self,
+        db: Session,
+        gemini: GeminiService | None = None,
+        cache: Optional[GenerationCache] = None,
+    ) -> None:
         self._db = db
         self._gemini = gemini
+        self._cache = cache or GenerationCache()
 
     def generate_and_store(self, requirement: str) -> TestGenerationResponse:
         """Run the model, persist the result, and return the full record."""
-        gemini = self._gemini or GeminiService()
-        try:
-            payload = gemini.generate_test_cases(requirement)
-        except GeminiServiceError:
-            raise
-        except Exception as exc:  # noqa: BLE001
-            logger.exception("Unexpected error from Gemini service")
-            raise GeminiServiceError(f"Unexpected error: {exc}") from exc
+        cached = self._cache.get(requirement)
+        if cached is not None:
+            logger.info("Cache hit for requirement (len=%d)", len(requirement))
+            payload = cached
+        else:
+            gemini = self._gemini or GeminiService()
+            try:
+                payload = gemini.generate_test_cases(requirement)
+            except GeminiServiceError:
+                raise
+            except Exception as exc:  # noqa: BLE001
+                logger.exception("Unexpected error from Gemini service")
+                raise GeminiServiceError(f"Unexpected error: {exc}") from exc
+            self._cache.set(requirement, payload)
 
         record = TestGeneration(
             requirement=payload["requirement"],
