@@ -15,11 +15,15 @@ The script:
 from __future__ import annotations
 
 import io
+import logging
 import sys
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Iterator
+
+# Silence noisy framework logs before importing anything that configures them.
+logging.basicConfig(level=logging.ERROR, force=True)
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
