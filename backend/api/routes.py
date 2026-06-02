@@ -24,14 +24,28 @@ router = APIRouter(prefix="/api", tags=["test-cases"])
 
 
 @router.get("/health", response_model=HealthResponse, summary="Health check")
-def health_check() -> HealthResponse:
-    """Return a simple health response."""
+def health_check(db: Session = Depends(get_db)) -> HealthResponse:
+    """Return a simple health response including DB reachability."""
     from backend.config import get_settings
 
+    settings = get_settings()
+
+    db_status: str = "unknown"
+    try:
+        from sqlalchemy import text  # local import to avoid pulling when unused
+
+        db.execute(text("SELECT 1"))
+        db_status = "ok"
+    except Exception:  # noqa: BLE001
+        db_status = "unreachable"
+
+    overall: str = "ok" if db_status == "ok" else "degraded"
     return HealthResponse(
-        status="ok",
+        status=overall,  # type: ignore[arg-type]
         version="1.0.0",
-        model=get_settings().gemini_model,
+        model=settings.gemini_model,
+        database=db_status,  # type: ignore[arg-type]
+        gemini_key_configured=bool(settings.gemini_api_key),
     )
 
 

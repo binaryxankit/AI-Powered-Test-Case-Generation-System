@@ -69,6 +69,8 @@ class TestGenerationSummary(BaseModel):
 class HealthResponse(BaseModel):
     """Health-check response."""
 
-    status: Literal["ok"] = "ok"
+    status: Literal["ok", "degraded"] = "ok"
     version: str
     model: Optional[str] = None
+    database: Literal["ok", "unreachable", "unknown"] = "unknown"
+    gemini_key_configured: bool = False
