@@ -8,6 +8,7 @@ from backend.api.routes import router as api_router
 from backend.config import get_settings
 from backend.database.session import init_db
 from backend.logging_config import configure_logging
+from backend.middleware.errors import register_exception_handlers
 
 configure_logging()
 
@@ -26,6 +27,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+register_exception_handlers(app)
 
 
 @app.on_event("startup")

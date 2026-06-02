@@ -15,15 +15,20 @@ _LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 _DATE_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
 
 
-def _json_formatter() -> logging.Formatter:
-    """Return a JSON formatter when ``LOG_JSON=1`` is set."""
+def _json_formatter(*_args: Any, **_kwargs: Any) -> logging.Formatter:
+    """Return a JSON formatter when ``LOG_JSON=1`` is set.
+
+    Extra positional/keyword arguments are ignored because
+    :func:`logging.config.dictConfig` passes things like ``datefmt`` to
+    the callable and we configure the format directly.
+    """
 
     import json
 
     class JsonFormatter(logging.Formatter):
         def format(self, record: logging.LogRecord) -> str:  # noqa: D401
             payload: Dict[str, Any] = {
-                "timestamp": self.formatTime(record, self.datefmt),
+                "timestamp": self.formatTime(record, _DATE_FORMAT),
                 "level": record.levelname,
                 "logger": record.name,
                 "message": record.getMessage(),
@@ -32,7 +37,7 @@ def _json_formatter() -> logging.Formatter:
                 payload["exception"] = self.formatException(record.exc_info)
             return json.dumps(payload, ensure_ascii=False)
 
-    return JsonFormatter(datefmt=_DATE_FORMAT)
+    return JsonFormatter()
 
 
 def configure_logging(level: str | int = "INFO") -> None:
