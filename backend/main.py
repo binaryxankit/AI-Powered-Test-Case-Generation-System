@@ -34,8 +34,18 @@ app.add_middleware(
 
 @app.on_event("startup")
 def _on_startup() -> None:
-    """Create database tables on startup (idempotent)."""
-    init_db()
+    """Create database tables on startup (idempotent).
+
+    Failures are logged but do not block the server from starting so that
+    the API can be reached in environments where the database is not yet
+    available (e.g. local smoke tests or container startup ordering).
+    """
+    try:
+        init_db()
+    except Exception as exc:  # noqa: BLE001
+        logging.getLogger(__name__).warning(
+            "Skipping table creation: %s", exc,
+        )
 
 
 @app.get("/", include_in_schema=False)

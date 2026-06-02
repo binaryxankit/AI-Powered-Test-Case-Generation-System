@@ -19,12 +19,13 @@ class TestCaseService:
 
     def __init__(self, db: Session, gemini: GeminiService | None = None) -> None:
         self._db = db
-        self._gemini = gemini or GeminiService()
+        self._gemini = gemini
 
     def generate_and_store(self, requirement: str) -> TestGenerationResponse:
         """Run the model, persist the result, and return the full record."""
+        gemini = self._gemini or GeminiService()
         try:
-            payload = self._gemini.generate_test_cases(requirement)
+            payload = gemini.generate_test_cases(requirement)
         except GeminiServiceError:
             raise
         except Exception as exc:  # noqa: BLE001
