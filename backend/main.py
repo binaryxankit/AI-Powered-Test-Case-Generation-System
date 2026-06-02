@@ -1,19 +1,15 @@
 """FastAPI application entrypoint."""
 from __future__ import annotations
 
-import logging
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.routes import router as api_router
 from backend.config import get_settings
 from backend.database.session import init_db
+from backend.logging_config import configure_logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
+configure_logging()
 
 settings = get_settings()
 
@@ -43,9 +39,9 @@ def _on_startup() -> None:
     try:
         init_db()
     except Exception as exc:  # noqa: BLE001
-        logging.getLogger(__name__).warning(
-            "Skipping table creation: %s", exc,
-        )
+        from logging import getLogger
+
+        getLogger(__name__).warning("Skipping table creation: %s", exc)
 
 
 @app.get("/", include_in_schema=False)
