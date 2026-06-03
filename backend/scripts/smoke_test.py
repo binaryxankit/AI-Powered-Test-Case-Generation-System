@@ -121,8 +121,8 @@ def main() -> int:
     # Save the real ctor so we can restore it.
     real_init = service_module.TestCaseService.__init__
 
-    def patched_init(self, db, gemini=None):  # type: ignore[no-redef]
-        real_init(self, db, gemini=StubGemini())
+    def patched_init(self, db, llm_provider=None):  # type: ignore[no-redef]
+        real_init(self, db, llm_provider=StubGemini())
 
     service_module.TestCaseService.__init__ = patched_init  # type: ignore[assignment]
     try:
