@@ -12,6 +12,7 @@ from google.genai import errors as genai_errors
 
 from backend.config import get_settings
 from backend.schemas.test_case import TestCase
+from backend.services.exceptions import LlmServiceError
 
 logger = logging.getLogger(__name__)
 
@@ -54,8 +55,8 @@ SYSTEM_PROMPT = (
 )
 
 
-class GeminiServiceError(RuntimeError):
-    """Raised when the AI service cannot produce a valid response."""
+class GeminiServiceError(LlmServiceError):
+    """Raised when the Gemini service cannot produce a valid response."""
 
 
 class GeminiService:
