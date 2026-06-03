@@ -72,7 +72,7 @@ class HealthResponse(BaseModel):
     status: Literal["ok", "degraded"] = "ok"
     version: str
     model: Optional[str] = None
-    database: Literal["ok", "unreachable", "unknown"] = "unknown"
+    database: str = "unknown"
     gemini_key_configured: bool = False
     llm_provider: Optional[str] = None
     ollama_available: bool = False

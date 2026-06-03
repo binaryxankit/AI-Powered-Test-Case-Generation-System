@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from backend.database.session import get_db
+from backend.database.session import active_db_label, get_db
 from backend.schemas.test_case import (
     GenerateRequest,
     HealthResponse,
@@ -31,22 +31,9 @@ def health_check(db: Session = Depends(get_db)) -> HealthResponse:
 
     settings = get_settings()
 
-    db_status: str = "unknown"
-    try:
-        from sqlalchemy import text
-        from sqlalchemy import create_engine
-        fast_engine = create_engine(
-            settings.database_url,
-            connect_args={"connect_timeout": 2},
-        )
-        with fast_engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-            conn.commit()
-        db_status = "ok"
-    except Exception:  # noqa: BLE001
-        db_status = "unreachable"
-
-    overall: str = "ok" if db_status == "ok" else "degraded"
+    db_label = active_db_label()
+    db_status: str = db_label
+    overall: str = "ok" if db_label in ("configured", "local-sqlite") else "degraded"
 
     gemini_available = bool(settings.gemini_api_key)
     ollama_available = OllamaService.check_availability()
