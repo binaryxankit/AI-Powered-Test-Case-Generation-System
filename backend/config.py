@@ -37,6 +37,21 @@ class Settings(BaseSettings):
         description="Gemini model name used for generation.",
     )
 
+    llm_provider: str = Field(
+        default="auto",
+        description="LLM backend to use: 'auto' (try Gemini, fallback Ollama), 'gemini', or 'ollama'.",
+    )
+
+    ollama_base_url: str = Field(
+        default="http://localhost:11434",
+        description="Base URL for the Ollama API.",
+    )
+
+    ollama_model: str = Field(
+        default="gemma2:2b",
+        description="Ollama model name used for generation.",
+    )
+
     cors_origins: List[str] = Field(
         default_factory=lambda: ["http://localhost:3000"],
         description="Allowed CORS origins for the API.",
