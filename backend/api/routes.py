@@ -14,7 +14,8 @@ from backend.schemas.test_case import (
     TestGenerationResponse,
     TestGenerationSummary,
 )
-from backend.services.gemini_service import GeminiServiceError
+from backend.services.exceptions import LlmServiceError
+from backend.services.ollama_service import OllamaService
 from backend.services.pdf_service import render_pdf
 from backend.services.test_case_service import TestCaseService
 
@@ -32,20 +33,52 @@ def health_check(db: Session = Depends(get_db)) -> HealthResponse:
 
     db_status: str = "unknown"
     try:
-        from sqlalchemy import text  # local import to avoid pulling when unused
-
-        db.execute(text("SELECT 1"))
+        from sqlalchemy import text
+        from sqlalchemy import create_engine
+        fast_engine = create_engine(
+            settings.database_url,
+            connect_args={"connect_timeout": 2},
+        )
+        with fast_engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+            conn.commit()
         db_status = "ok"
     except Exception:  # noqa: BLE001
         db_status = "unreachable"
 
     overall: str = "ok" if db_status == "ok" else "degraded"
+
+    gemini_available = bool(settings.gemini_api_key)
+    ollama_available = OllamaService.check_availability()
+
+    if settings.llm_provider.lower() == "gemini" and gemini_available:
+        active_provider = "gemini"
+    elif settings.llm_provider.lower() == "ollama" and ollama_available:
+        active_provider = "ollama"
+    elif settings.llm_provider.lower() == "auto":
+        if gemini_available:
+            active_provider = "gemini"
+        elif ollama_available:
+            active_provider = "ollama"
+        else:
+            active_provider = "none"
+    else:
+        active_provider = settings.llm_provider.lower()
+
+    active_model = (
+        settings.gemini_model if active_provider == "gemini"
+        else settings.ollama_model if active_provider == "ollama"
+        else None
+    )
+
     return HealthResponse(
         status=overall,  # type: ignore[arg-type]
         version="1.0.0",
-        model=settings.gemini_model,
+        model=active_model,
         database=db_status,  # type: ignore[arg-type]
-        gemini_key_configured=bool(settings.gemini_api_key),
+        gemini_key_configured=gemini_available,
+        llm_provider=active_provider,  # type: ignore[arg-type]
+        ollama_available=ollama_available,
     )
 
 
@@ -63,7 +96,7 @@ def generate_test_cases(
     service = TestCaseService(db)
     try:
         return service.generate_and_store(payload.requirement)
-    except GeminiServiceError as exc:
+    except LlmServiceError as exc:
         logger.warning("Generation failed: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
