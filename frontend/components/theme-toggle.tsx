@@ -6,6 +6,8 @@ import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
 
+const THEME_KEYBOARD_SHORTCUT = "t";
+
 type ThemeOption = "dark" | "light" | "system";
 
 const THEME_CYCLE: ThemeOption[] = ["dark", "light", "system"];
@@ -29,10 +31,21 @@ export function ThemeToggle() {
 
   const { icon: Icon, label } = THEME_META[current];
 
-  const cycle = () => {
+  const cycle = React.useCallback(() => {
     const next = THEME_META[current].next;
     setTheme(next);
-  };
+  }, [current, setTheme]);
+
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === THEME_KEYBOARD_SHORTCUT) {
+        e.preventDefault();
+        cycle();
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [cycle]);
 
   return (
     <Button
