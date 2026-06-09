@@ -3,6 +3,12 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    transition: color 0.15s ease, background-color 0.15s ease;
+  }
+}
+
+@layer base {
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
